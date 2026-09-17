@@ -1,0 +1,11 @@
+# Internal benchmark project -- not a real OSS-Fuzz submission, so homepage/
+# main_repo/primary_contact are placeholders. language, fuzzing_engines, and
+# sanitizers are the fields infra/helper.py actually reads to build this.
+homepage: "https://internal/sparc/vulnjava"
+language: jvm
+primary_contact: "you@example.com"
+main_repo: "https://internal/sparc/vulnjava"
+fuzzing_engines:
+  - libfuzzer
+sanitizers:
+  - address

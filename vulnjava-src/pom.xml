@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.sparc</groupId>
+  <artifactId>vulnjava</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <name>vulnjava</name>
+  <description>
+    Deliberately vulnerable Java library used to validate a Jazzer/ClusterFuzz
+    pipeline before onboarding a real project. Mirrors the vulnfuzz C benchmark:
+    a difficulty ladder of intentional bugs, none of which reference Jazzer --
+    this jar is exactly what a real production module (e.g. MOSIP's
+    id-repository) would look like from the fuzz harness's point of view.
+  </description>
+
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+</project>
