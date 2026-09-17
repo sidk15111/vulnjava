@@ -1,9 +1,13 @@
 package com.sparc.vulnjava;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
+import java.util.regex.Pattern;
+
 /**
  * VulnDispatcher: a Java analogue of the "vulnfuzz" C benchmark.
  *
- * Six intentionally vulnerable methods, each exercising a different bug
+ * Eight intentionally vulnerable methods, each exercising a different bug
  * class and a different detection mechanism. Nothing in this file imports
  * Jazzer or knows it is being fuzzed -- all the fuzzer-specific parsing
  * lives in the harness (VulnJavaFuzzer.java), exactly the shape a real
@@ -17,6 +21,11 @@ package com.sparc.vulnjava;
  *   5. Exact string comparison gate              -> IllegalStateException, tests Jazzer's comparison hooks
  *   6. Unsanitized input into a shell command    -> caught by Jazzer's built-in OS Command Injection sanitizer,
  *                                                    not by any exception thrown here
+ *   7. Untrusted bytes into ObjectInputStream    -> caught by Jazzer's built-in Deserialization sanitizer;
+ *                                                    needs a real gadget-bearing class on the classpath and a
+ *                                                    validly-serialized seed (see README, "Level 7 setup")
+ *   8. Catastrophic-backtracking regex           -> a hang/timeout, not an exception -- a third detection
+ *                                                    mechanism again, distinct from both 1-5 and 6-7
  */
 public class VulnDispatcher {
 
@@ -115,5 +124,45 @@ public class VulnDispatcher {
      */
     public static void level6(String userInput) throws java.io.IOException {
         new ProcessBuilder("/bin/sh", "-c", "echo " + userInput).start();
+    }
+
+    /**
+     * Level 7: fuzzer-controlled bytes fed straight into Java's native
+     * deserialization. This method itself has zero dependency on any
+     * "gadget" library -- readObject() will resolve whatever class the
+     * stream names, using whatever is on the runtime classpath.
+     *
+     * That's also why this level can't be found by mutation alone: Java's
+     * serialization format is structured (magic bytes, class descriptors,
+     * field data) and a byte-fuzzer starting from nothing will essentially
+     * never construct a valid stream, let alone one that references a
+     * dangerous class. It needs a real serialized payload as a seed -- see
+     * README, "Level 7 setup", for the one-time step that generates one
+     * using a known-vulnerable commons-collections gadget chain.
+     */
+    public static void level7(byte[] serializedBytes) throws java.io.IOException, ClassNotFoundException {
+        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(serializedBytes))) {
+            ois.readObject();
+        }
+    }
+
+    /**
+     * Level 8: catastrophic regex backtracking. Deliberately NOT the
+     * textbook "(a+)+" nested-quantifier example -- verified empirically
+     * that modern OpenJDK (11 and later) has hardened java.util.regex
+     * against that exact shape, so it no longer hangs at all. This pattern
+     * -- several independent (a+) groups in a row, all competing for the
+     * same pool of characters -- still causes genuine combinatorial
+     * backtracking on every JDK tested (8, 11, 21), because there's no
+     * redundant-quantifier structure for the engine to simplify away.
+     * The finding here is a hang/timeout, not an exception -- a third
+     * detection mechanism, distinct from both the exceptions in 1-5 and
+     * the built-in sanitizers in 6-7.
+     */
+    private static final Pattern CATASTROPHIC_PATTERN =
+            Pattern.compile("(a+)(a+)(a+)(a+)(a+)(a+)(a+)(a+)(a+)(a+)b");
+
+    public static void level8(String input) {
+        CATASTROPHIC_PATTERN.matcher(input).matches();
     }
 }

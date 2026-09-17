@@ -23,4 +23,43 @@
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+
+  <dependencies>
+    <!--
+      Deliberately the known-vulnerable 3.2.1 release, and ONLY for level 7
+      (see VulnDispatcher.level7 and README "Level 7 setup"). VulnDispatcher
+      itself never imports these classes -- they only need to be resolvable
+      on the classpath at runtime, for Jazzer's Deserialization sanitizer to
+      have a real gadget to detect. Never use this version in anything else.
+    -->
+    <dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>3.2.1</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!--
+        Produces target/vulnjava-1.0.0.jar as a fat jar containing
+        commons-collections too, so build.sh's existing
+        `cp target/vulnjava-$VERSION.jar $OUT/vulnjava.jar` line needs no
+        change -- one jar, same name, same path, just bigger.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.1</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

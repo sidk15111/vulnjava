@@ -9,7 +9,7 @@ public class VulnJavaFuzzer {
         if (data.remainingBytes() < 1) {
             return;
         }
-        int opcode = Math.floorMod(data.consumeByte(), 6);
+        int opcode = Math.floorMod(data.consumeByte(), 8);
 
         try {
             switch (opcode) {
@@ -50,12 +50,29 @@ public class VulnJavaFuzzer {
                     VulnDispatcher.level6(userInput);
                     break;
                 }
+                case 6: {
+                    // consumeBytes(remainingBytes()) rather than a
+                    // consumeRemainingAsBytes()-style call, to stick to the
+                    // two FuzzedDataProvider methods already used elsewhere
+                    // in this file and avoid guessing at a method name.
+                    byte[] serialized = data.consumeBytes(data.remainingBytes());
+                    VulnDispatcher.level7(serialized);
+                    break;
+                }
+                case 7: {
+                    String regexInput = data.consumeRemainingAsString();
+                    VulnDispatcher.level8(regexInput);
+                    break;
+                }
                 default:
                     break;
             }
-        } catch (java.io.IOException e) {
-            // A failed process launch in level 6 is not the finding we're
-            // testing for -- only Jazzer's own sanitizer hook matters there.
+        } catch (java.io.IOException | ClassNotFoundException e) {
+            // A failed process launch (level 6) or an ordinary deserialization
+            // failure on non-well-formed bytes (level 7 -- almost every random
+            // input lands here) is not the finding we're testing for. Left
+            // uncaught, ClassNotFoundException alone would otherwise flood
+            // ClusterFuzz with a "crash" on nearly every input to level 7.
         }
     }
 }
