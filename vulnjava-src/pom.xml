@@ -28,7 +28,7 @@
     <!--
       Deliberately the known-vulnerable 3.2.1 release, and ONLY for level 7
       (see VulnDispatcher.level7 and README "Level 7 setup"). VulnDispatcher
-      itself never imports these classes -- they only need to be resolvable
+      itself never imports these classes; they only need to be resolvable
       on the classpath at runtime, for Jazzer's Deserialization sanitizer to
       have a real gadget to detect. Never use this version in anything else.
     -->
@@ -45,7 +45,7 @@
         Produces target/vulnjava-1.0.0.jar as a fat jar containing
         commons-collections too, so build.sh's existing
         `cp target/vulnjava-$VERSION.jar $OUT/vulnjava.jar` line needs no
-        change -- one jar, same name, same path, just bigger.
+        change: one jar, same name, same path, just bigger.
       -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
