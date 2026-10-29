@@ -37,6 +37,21 @@
       <artifactId>commons-collections</artifactId>
       <version>3.2.1</version>
     </dependency>
+    <!--
+      Sink ladder (com.sparc.vulnjava.sinks, see README "Sink ladder"): MVEL is the expression
+      engine MOSIP uses for rules (sink S4), H2 is an in-memory database so the SQL sinks (S5a/S5b)
+      run real queries. Both are bundled into the fat jar by the shade plugin below.
+    -->
+    <dependency>
+      <groupId>org.mvel</groupId>
+      <artifactId>mvel2</artifactId>
+      <version>2.5.2.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.2.224</version>
+    </dependency>
   </dependencies>
 
   <build>

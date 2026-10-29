@@ -40,6 +40,8 @@ vulnjava/
 ├── project.yaml                     language: jvm, engine: libfuzzer, sanitizer: address
 ├── VulnJavaFuzzer.java              the only file that imports Jazzer
 ├── VulnJavaFuzzer_seed_corpus.zip   12 short, harmless, varied-length seeds
+├── Sink*Fuzzer.java, .dict, .options, _seed_corpus.zip   sink ladder (see below)
+├── meters/                          vendored meter hooks (do not edit here; see meters/README.md)
 ├── tools/
 │   └── GenerateDeserializationSeed.java   one-time generator for level 7's seed, see below
 └── vulnjava-src/                    the "upstream" project, as if git-cloned
@@ -164,6 +166,53 @@ inside a Docker container locally, and inside an ephemeral GCP Batch job
 once it's on your bots -- so nothing here needs a separate sandbox. Worth
 knowing about if you ever see a fuzzing session's system resource usage
 spike unexpectedly during either of these two targets.
+
+## Sink ladder (meter validation)
+
+A second, separate ladder for Phase 2 of the AI-assisted pipeline: one planted bug per sink type
+found in MOSIP, each in a small MOSIP-shaped flow (entry -> validator -> helper -> sink) with a
+fixed variant, plus one harness per bug. Its job is to prove the meters in `meters/` (a vendored
+copy of `~/SPARC/ai-fuzz/meters`) fire when they should and stay quiet when they shouldn't, before
+they're used to judge LLM-written harnesses on MOSIP. The original eight-level ladder is unchanged
+and runs without the meters.
+
+| Harness | Planted bug (`com.sparc.vulnjava.sinks`) | Detected by |
+|---|---|---|
+| `SinkZipSlipFuzzer` | S1 `PacketArchive.extractTo`: entry name used as a path (zip slip) | meter: path traversal |
+| `SinkZipBombFuzzer` | S2 `PacketArchive.readEntry`: entry inflated with no size limit | meter: decompression bomb |
+| `SinkXxeFuzzer` | S3 `BiometricXml.parse`: default DocumentBuilderFactory on CBEFF-style XML | meter: XXE |
+| `SinkMvelFuzzer` | S4 `EligibilityRules.hasField`: field name concatenated into an MVEL expression | meter + Jazzer honeypot: remote code execution |
+| `SinkSqlStatementFuzzer` | S5a `DeviceRepository.countByName`: concatenated SQL via `Statement` | Jazzer built-in SQL injection |
+| `SinkSqlPreparedFuzzer` | S5b `DeviceRepository.countByZone`: concatenated SQL inside `prepareStatement` | meter: SQL injection |
+| `SinkCertFuzzer` | S6 `CertificateUpload.uploadCaCertificate`: base64 decode outside the try (from keymanager) | uncaught exception |
+| `SinkTokenFuzzer` | S7 `TokenVerifier.verify`: accepts `"alg":"none"` | property in the harness: verify must agree with the reference verifier |
+
+Every sink harness runs the fixed variant when given `-Dsink.safe=true`. Each has a seed corpus
+of ordinary inputs and a dictionary with the tokens the meters steer toward; `.options` raise
+`max_len` for the archive harnesses.
+
+```bash
+python3 infra/helper.py build_image vulnjava
+python3 infra/helper.py build_fuzzers --sanitizer=address vulnjava
+
+# vulnerable version, with the meter event log written to build/out/vulnjava/
+python3 infra/helper.py run_fuzzer -e METER_EVENTS=/out/events-xxe.jsonl vulnjava SinkXxeFuzzer -max_total_time=120
+
+# fixed version: must run to the time limit without a finding
+python3 infra/helper.py run_fuzzer -e METER_EVENTS=/out/events-xxe-fixed.jsonl vulnjava SinkXxeFuzzer \
+    --additional_jvm_args=-Dsink.safe=true -max_total_time=120
+```
+
+`events-*.jsonl.summary.json` shows what the meters saw, e.g.
+`{"reached:xml.parse": 191006, "signal:xml.parser.unhardened": 191006}`: the parse call was reached
+and the parser was built without hardening, before any XXE was found.
+
+**Check first in Docker:** `SinkMvelFuzzer`. It was validated against a local stand-in for MVEL;
+this build pulls the real `mvel2` jar. Expect a "Remote Code Execution" finding on the vulnerable
+version and none with `-Dsink.safe=true`.
+
+Results from the local validation (Jazzer 0.24.0, no Docker) are in `meters/README.md` of the
+source of truth (`~/SPARC/ai-fuzz/meters/README.md`).
 
 ## Once all eight are found locally
 

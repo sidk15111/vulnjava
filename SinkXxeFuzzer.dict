@@ -1,0 +1,8 @@
+"<!DOCTYPE BIR [<!ENTITY x SYSTEM \"jazzerxxe://canary\">]>"
+"<!DOCTYPE BIR [<!ENTITY x SYSTEM \"file:///tmp/jazzer-xxe\">]>"
+"&x;"
+"<BIR>"
+"</BIR>"
+"<!ENTITY"
+"SYSTEM"
+"FUZZMARK"

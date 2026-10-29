@@ -19,4 +19,9 @@ COPY vulnjava-src $SRC/vulnjava
 # json-sanitizer example project layout.
 COPY build.sh VulnJavaFuzzer.java VulnJavaFuzzer_seed_corpus.zip $SRC/
 
+# Sink ladder: one harness per planted sink, its dictionary/options/seeds, and the meter hooks
+# (a vendored copy of ~/SPARC/ai-fuzz/meters -- see meters/README.md).
+COPY Sink*Fuzzer.java Sink*.dict Sink*.options Sink*_seed_corpus.zip $SRC/
+COPY meters $SRC/meters
+
 WORKDIR $SRC/vulnjava
