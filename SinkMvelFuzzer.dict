@@ -1,6 +1,10 @@
+# tokens the MVEL meter steers toward; injection needs a valid statement around the honeypot call,
+# e.g. "gender; jaz.Zer.el()" or "gender == null || jaz.Zer.el() == null || applicant.gender"
 "jaz.Zer.el()"
+";"
 "||"
 "&&"
+" == null"
 "applicant."
 " != null"
 "FUZZMARK"

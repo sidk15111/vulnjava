@@ -142,7 +142,7 @@ public final class Meter {
     }
 
     static String truncate(String s, int max) {
-        return s.length() <= max ? s : s.substring(0, max) + "…";
+        return s.length() <= max ? s : s.substring(0, max) + "...";
     }
 
     static String esc(String s) {
